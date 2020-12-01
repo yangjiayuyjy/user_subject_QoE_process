@@ -4,13 +4,15 @@ import numpy as np
 import os
 import csv
 import random
+import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 
 pattern = re.compile(r'content:\d+ ABR:\d+ trace:\d+')
 pattern2 = re.compile(r'score of subject \d+')
 pattern1 = re.compile(r'[-]?\d+[.]?\d*')
 
-train_rate = 0.9
+train_rate = 0.8
 
 subject = [[]] * 66
 ave_subject = [[]] * 66
@@ -19,6 +21,8 @@ ave_subject_max_score = [0] * 66
 content = ''
 ABR = ''
 trace = ''
+loss_image = []
+srcc_image = []
 
 shuffle_num = []
 for i in range(0, 150):
@@ -50,11 +54,24 @@ def get_loss(train_rows, test_rows):
     b = model.coef_
 
     loss = 0
+    scores = []
+    real_scores = []
     for row in test_rows:
         predict_score = predict(a, b, row)
+        scores.append(predict_score)
         loss += abs(predict_score - row['score'])
+        real_scores.append(row['score'])
 
-    return loss
+    processed_data = pd.DataFrame({'predict': scores,
+                                    'real': real_scores})
+    rr = processed_data.corr('spearman')
+    predicts = list(rr.get('predict'))
+    print('loss:' + str(loss))
+    print('srcc:' + str(predicts))
+    loss_image.append(loss)
+    srcc_image.append(predicts[1] * 500)
+
+    return 1000 - predicts[1] * 500
 
 
 
@@ -254,6 +271,11 @@ for j in range(1, 66):
             test_index = new_test_data_index
 
     #new logic end
+
+
+    #plt.plot(srcc_image, color = 'red', linewidth = 2.0, linestyle = '--')
+    #plt.plot(loss_image, color='blue', linewidth=3.0, linestyle='-.')
+    #plt.show()
 
     print('subject' + str(j) + 'loss:' + str(loss))
 
